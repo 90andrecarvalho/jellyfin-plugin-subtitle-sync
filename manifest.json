@@ -9,12 +9,12 @@
     "imageUrl": "https://raw.githubusercontent.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/main/src/Jellyfin.Plugin.SubtitleOffset/Configuration/logo.svg",
     "versions": [
       {
-        "version": "2.0.0.0",
-        "changelog": "See https://github.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/releases/tag/v2.0.0.0",
+        "version": "2.0.1.0",
+        "changelog": "See https://github.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/releases/tag/v2.0.1.0",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/releases/download/v2.0.0.0/subtitle-sync-2.0.0.0.zip",
-        "checksum": "a401124ba9200107fb5e5bc63371b97d",
-        "timestamp": "2026-06-07T14:00:56Z"
+        "sourceUrl": "https://github.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/releases/download/v2.0.1.0/subtitle-sync-2.0.1.0.zip",
+        "checksum": "2a4848203fe5d89e462923c61246b089",
+        "timestamp": "2026-06-07T17:55:18Z"
       }
     ]
   }
