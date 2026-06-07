@@ -1,16 +1,15 @@
 {
-  "category": "",
+  "category": "Subtitles",
   "changelog": "",
   "description": "Generates corrected .srt files with adjusted timing so subtitle fixes apply to all users.",
   "guid": "b3c4d5e6-f7a8-9012-bcde-f34567890abc",
   "name": "Subtitle Sync",
   "overview": "Admin tool to fix subtitle timing for all users",
-  "owner": "",
+  "owner": "90andrecarvalho",
   "targetAbi": "10.11.0.0",
-  "timestamp": "2024-01-01T00:00:00.0000000Z",
+  "timestamp": "2024-01-01T00:00:00Z",
   "version": "2.0.0.0",
   "status": "Active",
   "autoUpdate": false,
-  "imagePath": "thumb.png",
-  "assemblies": []
+  "imagePath": "thumb.png"
 }
