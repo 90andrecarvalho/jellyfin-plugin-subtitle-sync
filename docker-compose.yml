@@ -1,0 +1,18 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.11.10
+    container_name: jellyfin-subtitle-offset-dev
+    ports:
+      - "8096:8096"
+    volumes:
+      - ./docker/config:/config
+      - ./docker/media:/media
+      - ./build/plugin:/config/plugins/SubtitleOffset
+    environment:
+      - JELLYFIN_PublishedServerUrl=http://localhost:8096
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

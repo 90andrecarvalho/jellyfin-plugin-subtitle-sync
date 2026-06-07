@@ -1,0 +1,12 @@
+1
+00:00:01,000 --> 00:00:04,000
+This file is intentionally malformed.
+
+2
+00:00:05 --> 00:00:08
+Missing milliseconds in timestamp.
+
+3
+Bad sequence number here
+00:00:10,000 --> 00:00:13,000
+This won't parse correctly.
