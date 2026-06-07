@@ -1,0 +1,21 @@
+1
+00:00:01,000 --> 00:00:04,000
+Hola, bienvenido a este vídeo de ejemplo.
+
+2
+00:00:05,000 --> 00:00:08,500
+Esta es la segunda línea de subtítulos
+con múltiples líneas de texto.
+
+3
+00:00:10,000 --> 00:00:13,000
+Y aquí está la tercera entrada de subtítulos.
+
+4
+00:00:15,500 --> 00:00:18,000
+Los subtítulos continúan aquí.
+
+5
+00:00:20,000 --> 00:00:24,000
+Esta es la última línea de subtítulos.
+¡Gracias por ver!

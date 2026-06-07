@@ -1,0 +1,13 @@
+bin/
+obj/
+build/
+.vs/
+*.user
+*.suo
+__pycache__/
+*.pyc
+.pytest_cache/
+docker/config/
+*.mp4
+logo.svg.png
+src/Jellyfin.Plugin.SubtitleOffset/Configuration/logo.png

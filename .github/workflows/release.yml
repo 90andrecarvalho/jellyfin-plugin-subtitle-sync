@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/Jellyfin.Plugin.SubtitleOffset
+
+      - name: Build
+        run: dotnet build src/Jellyfin.Plugin.SubtitleOffset -c Release -o build/plugin --no-restore
+
+      - name: Generate thumb.png from SVG
+        run: |
+          pip install cairosvg
+          python3 -c "
+          import cairosvg
+          cairosvg.svg2png(url='src/Jellyfin.Plugin.SubtitleOffset/Configuration/logo.svg', write_to='build/plugin/thumb.png', output_width=512, output_height=288)
+          "
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update meta.json version
+        run: |
+          jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' build/plugin/meta.json > tmp.json && mv tmp.json build/plugin/meta.json
+
+      - name: Create release ZIP
+        run: |
+          cd build/plugin
+          zip -j "../../subtitle-sync-${{ steps.version.outputs.version }}.zip" \
+            Jellyfin.Plugin.SubtitleOffset.dll \
+            meta.json \
+            thumb.png
+
+      - name: Compute checksum
+        id: checksum
+        run: |
+          checksum=$(md5sum "subtitle-sync-${{ steps.version.outputs.version }}.zip" | awk '{print $1}')
+          echo "md5=$checksum" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: subtitle-sync-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true
+
+      - name: Update manifest.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          CHECKSUM="${{ steps.checksum.outputs.md5 }}"
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.0000000Z)
+          DOWNLOAD_URL="https://github.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/releases/download/v${VERSION}/subtitle-sync-${VERSION}.zip"
+
+          cat > manifest.json << EOF
+          [
+            {
+              "guid": "b3c4d5e6-f7a8-9012-bcde-f34567890abc",
+              "name": "Subtitle Sync",
+              "overview": "Admin tool to fix subtitle timing for all users",
+              "description": "A Jellyfin plugin that lets admins visually adjust subtitle timing and save corrected .srt files for all users.",
+              "owner": "90andrecarvalho",
+              "category": "Subtitles",
+              "imageUrl": "https://raw.githubusercontent.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/main/build/plugin/thumb.png",
+              "versions": [
+                {
+                  "version": "${VERSION}",
+                  "changelog": "See https://github.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/releases/tag/v${VERSION}",
+                  "targetAbi": "10.11.0.0",
+                  "sourceUrl": "${DOWNLOAD_URL}",
+                  "checksum": "${CHECKSUM}",
+                  "timestamp": "${TIMESTAMP}"
+                }
+              ]
+            }
+          ]
+          EOF
+
+      - name: Commit manifest.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git add manifest.json
+          git commit -m "Update manifest.json for v${{ steps.version.outputs.version }}" || echo "No changes"
+          git push origin main

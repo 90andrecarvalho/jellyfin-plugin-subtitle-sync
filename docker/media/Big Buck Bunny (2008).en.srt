@@ -1,0 +1,21 @@
+1
+00:00:01,000 --> 00:00:04,000
+Hello, welcome to this sample video.
+
+2
+00:00:05,000 --> 00:00:08,500
+This is the second subtitle line
+with multiple lines of text.
+
+3
+00:00:10,000 --> 00:00:13,000
+And here is the third subtitle entry.
+
+4
+00:00:15,500 --> 00:00:18,000
+The subtitles continue here.
+
+5
+00:00:20,000 --> 00:00:24,000
+This is the final subtitle line.
+Thank you for watching!

@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "b3c4d5e6-f7a8-9012-bcde-f34567890abc",
+    "name": "Subtitle Sync",
+    "overview": "Admin tool to fix subtitle timing for all users",
+    "description": "A Jellyfin plugin that lets admins visually adjust subtitle timing and save corrected .srt files for all users.",
+    "owner": "90andrecarvalho",
+    "category": "Subtitles",
+    "imageUrl": "https://raw.githubusercontent.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/main/build/plugin/thumb.png",
+    "versions": []
+  }
+]

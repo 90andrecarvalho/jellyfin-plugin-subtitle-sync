@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Subtitle Sync</title>
+</head>
+<body>
+    <div id="SubtitleOffsetConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button">
+    <style>
+        :root {
+            --timeline-bg: #1a1a2e;
+            --cue-bar: rgba(66, 135, 245, 0.6);
+            --waveform-fill: rgba(76, 175, 80, 0.4);
+            --playback-head: #ff4444;
+            --saved-badge: #4caf50;
+            --panel-bg: rgba(255, 255, 255, 0.04);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --danger: #d9534f;
+            --primary: #4287f5;
+            --muted: rgba(255, 255, 255, 0.7);
+        }
+
+        #SubtitleOffsetConfigPage .content-primary {
+            max-width: 1600px;
+        }
+
+        .subtitle-offset-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .search-view,
+        .editor-view {
+            display: none;
+        }
+
+        .search-view.is-active,
+        .editor-view.is-active {
+            display: block;
+        }
+
+        .search-panel,
+        .panel-card,
+        .timeline-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            background: rgba(0, 0, 0, 0.2);
+            color: inherit;
+            padding: 0.9rem 1rem;
+            font-size: 1rem;
+        }
+
+        .search-results {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .result-card {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            gap: 0.9rem;
+            align-items: center;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            padding: 0.85rem;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            background: rgba(255, 255, 255, 0.03);
+            color: inherit;
+        }
+
+        .result-card:hover,
+        .result-card:focus {
+            border-color: var(--primary);
+            background: rgba(66, 135, 245, 0.12);
+            outline: none;
+        }
+
+        .result-thumb {
+            width: 96px;
+            height: 54px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .result-thumb.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .result-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-meta {
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+
+        .search-status,
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.25rem;
+            color: inherit;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link:hover,
+        .back-link:focus {
+            text-decoration: underline;
+        }
+
+        .editor-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .player-panel {
+            flex: 0 1 420px;
+            max-width: 420px;
+        }
+
+        .controls-panel {
+            flex: 1 1 380px;
+        }
+
+        .panel-title {
+            margin: 0 0 0.35rem;
+            font-size: 1.25rem;
+        }
+
+        .panel-subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .video-shell {
+            position: relative;
+            margin-top: 1rem;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .video-shell video {
+            width: 100%;
+            display: block;
+            background: #000;
+            min-height: 220px;
+        }
+
+        .subtitle-overlay {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            bottom: 10%;
+            text-align: center;
+            color: #fff;
+            font-size: 1.15rem;
+            font-weight: 600;
+            line-height: 1.35;
+            pointer-events: none;
+            text-shadow:
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                2px 2px 0 #000,
+                0 0 10px rgba(0, 0, 0, 0.9);
+            white-space: pre-line;
+        }
+
+        .field-group {
+            margin-bottom: 1rem;
+        }
+
+        .field-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .field-help {
+            margin-top: 0.35rem;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .track-select,
+        .offset-input {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            background: rgba(0, 0, 0, 0.2);
+            color: inherit;
+            padding: 0.75rem 0.85rem;
+            font-size: 1rem;
+        }
+
+        .track-warning {
+            margin-top: 0.4rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            background: rgba(217, 83, 79, 0.15);
+            border: 1px solid rgba(217, 83, 79, 0.4);
+            color: #e8a09e;
+            font-size: 0.85rem;
+        }
+
+        .offset-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .offset-input-wrap {
+            flex: 1 1 180px;
+            min-width: 180px;
+        }
+
+        .saved-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: var(--saved-badge);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 0.35rem 0.7rem;
+            white-space: nowrap;
+        }
+
+        .saved-badge.is-hidden,
+        .is-hidden {
+            display: none !important;
+        }
+
+        .offset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .offset-buttons button,
+        .action-buttons button,
+        .waveform-actions button,
+        .search-empty button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.65rem 1rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .offset-buttons button:hover,
+        .action-buttons button:hover,
+        .waveform-actions button:hover,
+        .search-empty button:hover {
+            filter: brightness(1.08);
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .button-primary {
+            background: var(--primary) !important;
+        }
+
+        .button-danger {
+            background: var(--danger) !important;
+        }
+
+        .button-secondary {
+            background: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        .button-busy {
+            opacity: 0.8;
+            cursor: wait !important;
+        }
+
+        .timeline-container {
+            margin-top: 1rem;
+        }
+
+        .timeline-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-hint {
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        .timeline-canvas-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--timeline-bg);
+        }
+
+        .timeline-canvas {
+            display: block;
+            width: 100%;
+            height: 150px;
+            cursor: pointer;
+            background: var(--timeline-bg);
+        }
+
+        .waveform-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .progress-shell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .progress-bar {
+            flex: 1 1 240px;
+            height: 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--waveform-fill), #7bd67e);
+            transition: width 0.2s ease;
+        }
+
+        .timeline-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        .status-success {
+            color: #7bd67e;
+        }
+
+        .status-error {
+            color: #ff8a80;
+        }
+
+        .status-warning {
+            color: #ffd166;
+        }
+
+        .search-empty {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px dashed var(--panel-border);
+            border-radius: 12px;
+            color: var(--muted);
+        }
+
+        .library-browser {
+            margin-top: 1.5rem;
+        }
+
+        .library-browser.is-hidden {
+            display: none !important;
+        }
+
+        .library-browser-heading {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .library-breadcrumb {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--muted);
+        }
+
+        .library-breadcrumb button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 0.15rem 0.3rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .library-breadcrumb button:hover {
+            text-decoration: underline;
+        }
+
+        .library-breadcrumb .breadcrumb-separator {
+            color: var(--muted);
+            user-select: none;
+        }
+
+        .library-breadcrumb .breadcrumb-current {
+            font-weight: 600;
+            color: inherit;
+        }
+
+        .library-back-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.25rem 0;
+            margin-bottom: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .library-back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .library-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .library-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+            gap: 0.6rem;
+        }
+
+        .library-spinner::before {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--panel-border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: lib-spin 0.7s linear infinite;
+        }
+
+        @keyframes lib-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .library-empty {
+            padding: 2rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .library-error {
+            padding: 1.5rem;
+            text-align: center;
+            color: #ff8a80;
+            font-size: 0.95rem;
+        }
+
+        .library-error button {
+            margin-top: 0.75rem;
+            border: 0;
+            border-radius: 999px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .library-error button:hover {
+            filter: brightness(1.08);
+        }
+
+        .library-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .library-pagination button {
+            background: none;
+            border: 1px solid var(--panel-border);
+            color: inherit;
+            cursor: pointer;
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .library-pagination button:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .library-pagination button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .result-card .folder-indicator {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-left: auto;
+        }
+
+        @media (max-width: 1023px) {
+            .player-panel,
+            .controls-panel {
+                flex: 1 1 100%;
+                max-width: none;
+            }
+        }
+    </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <div class="subtitle-offset-container">
+                    <div class="search-view is-active" id="searchView">
+                        <div class="search-panel">
+                            <h2 class="panel-title">Subtitle synchronization admin tool</h2>
+                            <p class="panel-subtitle">Find a movie or episode, preview subtitles in a lightweight player, adjust timing, and save or replace subtitle files.</p>
+                            <div class="field-group" style="margin-top: 1rem;">
+                                <label class="field-label" for="searchInput">Search library</label>
+                                <input id="searchInput" class="search-input" type="text" placeholder="Search by title..." autocomplete="off">
+                            </div>
+                            <div class="search-status" id="searchStatus">Start typing to search movies and episodes.</div>
+                            <div class="search-results" id="searchResults"></div>
+
+                            <div class="library-browser" id="libraryBrowser">
+                                <h3 class="library-browser-heading">Browse Libraries</h3>
+                                <nav class="library-breadcrumb" id="libraryBreadcrumb"></nav>
+                                <button type="button" class="library-back-btn is-hidden" id="libraryBackBtn">← Back</button>
+                                <div class="library-items" id="libraryItems"></div>
+                                <div class="library-pagination is-hidden" id="libraryPagination">
+                                    <button type="button" id="libraryPrevBtn">← Prev</button>
+                                    <span id="libraryPageLabel">Page 1</span>
+                                    <button type="button" id="libraryNextBtn">Next →</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="editor-view" id="editorView">
+                        <a href="#" class="back-link" id="backToSearch">&larr; Back to search</a>
+
+                        <div class="editor-layout">
+                            <div class="player-panel panel-card">
+                                <h3 class="panel-title" id="editorTitle">Select a title</h3>
+                                <p class="panel-subtitle" id="editorMeta">Load a result to begin editing subtitle timing.</p>
+                                <div class="video-shell">
+                                    <video id="videoPlayer" controls playsinline preload="metadata"></video>
+                                    <div class="subtitle-overlay" id="subtitleOverlay"></div>
+                                </div>
+                            </div>
+
+                            <div class="controls-panel panel-card">
+                                <div class="field-group">
+                                    <label class="field-label" for="trackSelect">Subtitle track</label>
+                                    <select id="trackSelect" class="track-select"></select>
+                                    <div id="trackWarning" class="track-warning is-hidden"></div>
+                                    <div class="field-help">Only external .srt tracks are shown. Generated .Offset files are hidden from the selector.</div>
+                                </div>
+
+                                <div class="field-group">
+                                    <div class="field-label">Offset controls</div>
+                                    <div class="offset-row">
+                                        <div class="offset-input-wrap">
+                                            <input id="offsetInput" class="offset-input" type="number" step="100" value="0">
+                                        </div>
+                                        <div id="savedBadge" class="saved-badge is-hidden">Saved ✓</div>
+                                    </div>
+                                    <div class="offset-buttons" id="offsetButtons">
+                                        <button type="button" data-delta="-1000">-1000</button>
+                                        <button type="button" data-delta="-500">-500</button>
+                                        <button type="button" data-delta="-100">-100</button>
+                                        <button type="button" data-delta="100">+100</button>
+                                        <button type="button" data-delta="500">+500</button>
+                                        <button type="button" data-delta="1000">+1000</button>
+                                    </div>
+                                </div>
+
+                                <div class="action-buttons">
+                                    <button type="button" id="saveOffsetButton" class="button-primary">Save as Offset File</button>
+                                    <button type="button" id="replaceOriginalButton" class="button-danger">Replace Original</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="timeline-container">
+                            <div class="timeline-panel">
+                                <div class="timeline-toolbar">
+                                    <div>
+                                        <div class="field-label" style="margin-bottom: 0.2rem;">Timeline</div>
+                                        <div class="timeline-hint">Wheel to zoom, drag empty space to pan, drag cue bars to offset, click to seek.</div>
+                                    </div>
+                                    <div class="waveform-actions">
+                                        <button type="button" id="generateWaveformButton" class="button-secondary">Generate Waveform</button>
+                                        <div id="waveformProgress" class="progress-shell is-hidden">
+                                            <div class="progress-bar"><div id="waveformProgressFill" class="progress-bar-fill"></div></div>
+                                            <span id="waveformProgressLabel">0%</span>
+                                            <button type="button" id="cancelWaveformButton" class="button-danger">Cancel</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="timeline-canvas-wrap">
+                                    <canvas id="timelineCanvas" class="timeline-canvas" width="1200" height="150"></canvas>
+                                </div>
+                                <div class="timeline-meta">
+                                    <div id="timelineWindowLabel">Visible window: 0:00 → 0:00</div>
+                                    <div id="playbackTimeLabel">Playback: 00:00:00:00</div>
+                                    <div id="timelineOffsetLabel">Offset: 0 ms</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script type="text/javascript">
+        (function () {
+            var page = document.querySelector('#SubtitleOffsetConfigPage');
+            var state = {
+                initialized: false,
+                editorVisible: false,
+                currentItemId: null,
+                currentMediaSourceId: null,
+                currentStreamIndex: null,
+                currentTrackLabel: '',
+                currentOffsetMs: 0,
+                savedOffsetMs: 0,
+                subtitleEntries: [],
+                waveformData: null,
+                timelineZoom: 1,
+                timelineOffset: 0,
+                playSessionId: null,
+                hls: null,
+                animationFrameId: null,
+                waveformInProgress: false,
+                waveformProgress: 0,
+                searchToken: 0,
+                drag: null,
+                lastRenderedCueText: null,
+                lastCueIndex: 0,
+                currentItem: null,
+                currentMediaSource: null,
+                currentTracks: [],
+                libraryNav: {
+                    path: [],
+                    currentParentId: null,
+                    currentPage: 0,
+                    items: [],
+                    totalCount: 0,
+                    loading: false,
+                    error: null
+                }
+            };
+
+            var elements = {};
+            var debouncedSearch = null;
+            var debouncedOffsetInput = null;
+            var debouncedTrackOffsetUpdate = null;
+
+            function init() {
+                if (state.initialized) {
+                    return;
+                }
+
+                elements.searchView = document.getElementById('searchView');
+                elements.editorView = document.getElementById('editorView');
+                elements.searchInput = document.getElementById('searchInput');
+                elements.searchStatus = document.getElementById('searchStatus');
+                elements.searchResults = document.getElementById('searchResults');
+                elements.backToSearch = document.getElementById('backToSearch');
+                elements.editorTitle = document.getElementById('editorTitle');
+                elements.editorMeta = document.getElementById('editorMeta');
+                elements.videoPlayer = document.getElementById('videoPlayer');
+                elements.subtitleOverlay = document.getElementById('subtitleOverlay');
+                elements.trackSelect = document.getElementById('trackSelect');
+                elements.trackWarning = document.getElementById('trackWarning');
+                elements.offsetInput = document.getElementById('offsetInput');
+                elements.savedBadge = document.getElementById('savedBadge');
+                elements.offsetButtons = document.getElementById('offsetButtons');
+                elements.saveOffsetButton = document.getElementById('saveOffsetButton');
+                elements.replaceOriginalButton = document.getElementById('replaceOriginalButton');
+                elements.timelineCanvas = document.getElementById('timelineCanvas');
+                elements.timelineWindowLabel = document.getElementById('timelineWindowLabel');
+                elements.playbackTimeLabel = document.getElementById('playbackTimeLabel');
+                elements.timelineOffsetLabel = document.getElementById('timelineOffsetLabel');
+                elements.generateWaveformButton = document.getElementById('generateWaveformButton');
+                elements.waveformProgress = document.getElementById('waveformProgress');
+                elements.waveformProgressFill = document.getElementById('waveformProgressFill');
+                elements.waveformProgressLabel = document.getElementById('waveformProgressLabel');
+                elements.cancelWaveformButton = document.getElementById('cancelWaveformButton');
+                elements.timelineContext = elements.timelineCanvas.getContext('2d');
+                elements.libraryBrowser = document.getElementById('libraryBrowser');
+                elements.libraryBreadcrumb = document.getElementById('libraryBreadcrumb');
+                elements.libraryBackBtn = document.getElementById('libraryBackBtn');
+                elements.libraryItems = document.getElementById('libraryItems');
+                elements.libraryPagination = document.getElementById('libraryPagination');
+                elements.libraryPrevBtn = document.getElementById('libraryPrevBtn');
+                elements.libraryNextBtn = document.getElementById('libraryNextBtn');
+                elements.libraryPageLabel = document.getElementById('libraryPageLabel');
+
+                debouncedSearch = debounce(function (query) {
+                    performSearch(query);
+                }, 300);
+
+                debouncedOffsetInput = debounce(function (value) {
+                    setOffset(value, 400);
+                }, 400);
+
+                debouncedTrackOffsetUpdate = debounce(function () {
+                    refreshCueDisplay();
+                    drawTimeline();
+                }, 1000);
+
+                elements.searchInput.addEventListener('input', function () {
+                    var query = elements.searchInput.value.trim();
+                    updateLibraryBrowserVisibility(query);
+                    debouncedSearch(query);
+                });
+
+                elements.backToSearch.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    returnToSearch();
+                });
+
+                elements.trackSelect.addEventListener('change', function (event) {
+                    handleTrackSelection(event.target.value);
+                });
+
+                elements.offsetInput.addEventListener('input', function () {
+                    var nextValue = parseInt(elements.offsetInput.value, 10);
+                    if (isNaN(nextValue)) {
+                        nextValue = 0;
+                    }
+                    debouncedOffsetInput(nextValue);
+                });
+
+                elements.offsetButtons.addEventListener('click', function (event) {
+                    var button = event.target.closest('button[data-delta]');
+                    if (!button) {
+                        return;
+                    }
+                    var delta = parseInt(button.getAttribute('data-delta'), 10) || 0;
+                    setOffset(state.currentOffsetMs + delta, 400);
+                });
+
+                elements.generateWaveformButton.addEventListener('click', function () {
+                    startWaveformGeneration();
+                });
+
+                elements.cancelWaveformButton.addEventListener('click', function () {
+                    cancelWaveformGeneration();
+                });
+
+                elements.saveOffsetButton.addEventListener('click', function () {
+                    saveOffsetFile();
+                });
+
+                elements.replaceOriginalButton.addEventListener('click', function () {
+                    replaceOriginalFile();
+                });
+
+                elements.libraryBackBtn.addEventListener('click', function () {
+                    libraryNavigateUp();
+                });
+
+                elements.libraryPrevBtn.addEventListener('click', function () {
+                    libraryChangePage(state.libraryNav.currentPage - 1);
+                });
+
+                elements.libraryNextBtn.addEventListener('click', function () {
+                    libraryChangePage(state.libraryNav.currentPage + 1);
+                });
+
+                attachTimelineHandlers();
+                window.addEventListener('resize', drawTimeline);
+                page.addEventListener('pagehide', cleanupPlaybackSession);
+                window.addEventListener('beforeunload', cleanupPlaybackSession);
+
+                state.initialized = true;
+                loadLibraryLevel();
+            }
+
+            function debounce(fn, delay) {
+                var timer = null;
+                return function () {
+                    var args = arguments;
+                    clearTimeout(timer);
+                    timer = window.setTimeout(function () {
+                        fn.apply(null, args);
+                    }, delay);
+                };
+            }
+
+            function performSearch(query) {
+                state.searchToken += 1;
+                var requestToken = state.searchToken;
+
+                if (!query) {
+                    elements.searchResults.innerHTML = '';
+                    setSearchStatus('Start typing to search movies and episodes.');
+                    return;
+                }
+
+                setSearchStatus('Searching…');
+                ApiClient.getItems(ApiClient.getCurrentUserId(), {
+                    searchTerm: query,
+                    IncludeItemTypes: 'Movie,Episode',
+                    Recursive: true,
+                    Limit: 20,
+                    Fields: 'Path,MediaSources'
+                }).then(function (result) {
+                    if (requestToken !== state.searchToken) {
+                        return;
+                    }
+                    var items = (result && result.Items) || [];
+                    renderSearchResults(items);
+                    if (!items.length) {
+                        setSearchStatus('No matching movies or episodes found.');
+                    } else {
+                        setSearchStatus(items.length + ' result' + (items.length === 1 ? '' : 's') + ' found.');
+                    }
+                }).catch(function (error) {
+                    if (requestToken !== state.searchToken) {
+                        return;
+                    }
+                    renderSearchResults([]);
+                    setSearchStatus(getErrorMessage(error), 'status-error');
+                });
+            }
+
+            function renderSearchResults(items) {
+                elements.searchResults.innerHTML = '';
+                if (!items.length) {
+                    var empty = document.createElement('div');
+                    empty.className = 'search-empty';
+                    empty.textContent = 'Search results will appear here.';
+                    elements.searchResults.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(function (item) {
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'result-card';
+                    button.innerHTML = buildResultMarkup(item);
+                    button.addEventListener('click', function () {
+                        openEditor(item.Id);
+                    });
+                    elements.searchResults.appendChild(button);
+                });
+            }
+
+            function buildResultMarkup(item) {
+                var imageTag = item.ImageTags && item.ImageTags.Primary;
+                var imageUrl = imageTag ? ApiClient.getUrl('Items/' + item.Id + '/Images/Primary', {
+                    tag: imageTag,
+                    maxWidth: 192,
+                    maxHeight: 108,
+                    quality: 90
+                }) : '';
+                var title = escapeHtml(item.Name || 'Untitled');
+                var metaBits = [];
+                if (item.ProductionYear) {
+                    metaBits.push(item.ProductionYear);
+                }
+                metaBits.push(item.Type || 'Item');
+                if (item.SeriesName) {
+                    metaBits.push(item.SeriesName);
+                }
+                var thumb = imageUrl
+                    ? '<img class="result-thumb" src="' + imageUrl + '" alt="">'
+                    : '<div class="result-thumb placeholder">No image</div>';
+                return thumb +
+                    '<div>' +
+                    '<div class="result-title">' + title + '</div>' +
+                    '<div class="result-meta">' + escapeHtml(metaBits.join(' • ')) + '</div>' +
+                    '</div>';
+            }
+
+            function openEditor(itemId) {
+                cleanupPlaybackSession();
+                setView('editor');
+                resetEditorState();
+
+                fetchItemDetails(itemId).then(function (item) {
+                    state.currentItem = item;
+                    state.currentItemId = item.Id;
+                    elements.editorTitle.textContent = item.Name || 'Untitled';
+                    elements.editorMeta.textContent = buildEditorMeta(item);
+
+                    var mediaSource = pickMediaSource(item);
+                    if (!mediaSource) {
+                        throw new Error('No playable media source found for this item.');
+                    }
+
+                    state.currentMediaSource = mediaSource;
+                    state.currentMediaSourceId = mediaSource.Id;
+                    state.currentTracks = getSubtitleTracks(mediaSource);
+                    populateTrackOptions(state.currentTracks);
+                    state.playSessionId = createPlaySessionId();
+                    setupVideo(item.Id, mediaSource.Id, state.playSessionId);
+                    loadWaveform(item.Id);
+
+                    if (state.currentTracks.length) {
+                        return loadSubtitleTrack(state.currentTracks[0].streamIndex, false).catch(function (trackError) {
+                            refreshCueDisplay();
+                            drawTimeline();
+                        });
+                    }
+
+                    refreshCueDisplay();
+                    drawTimeline();
+                    return null;
+                }).catch(function (error) {
+                    populateTrackOptions([]);
+                    refreshCueDisplay();
+                    drawTimeline();
+                });
+            }
+
+            function fetchItemDetails(itemId) {
+                return ApiClient.getJSON(ApiClient.getUrl('Users/' + ApiClient.getCurrentUserId() + '/Items/' + itemId, {
+                    Fields: 'Path,MediaSources'
+                }));
+            }
+
+            function pickMediaSource(item) {
+                var mediaSources = item.MediaSources || [];
+                return mediaSources[0] || null;
+            }
+
+            function getSubtitleTracks(mediaSource) {
+                var streams = (mediaSource && mediaSource.MediaStreams) || [];
+                return streams.filter(function (stream) {
+                    var path = (stream.Path || '').toLowerCase();
+                    return stream.Type === 'Subtitle'
+                        && stream.IsExternal
+                        && /\.srt$/i.test(path)
+                        && path.indexOf('.offset') === -1;
+                }).map(function (stream) {
+                    var language = stream.DisplayLanguage || stream.Language || 'Unknown';
+                    var filename = extractFileName(stream.Path || 'subtitle.srt');
+                    return {
+                        streamIndex: stream.Index,
+                        label: language + ' • ' + filename,
+                        language: language,
+                        filename: filename,
+                        path: stream.Path || '',
+                        raw: stream
+                    };
+                });
+            }
+
+            function populateTrackOptions(tracks) {
+                elements.trackSelect.innerHTML = '';
+                if (!tracks.length) {
+                    var emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'No external .srt tracks available';
+                    elements.trackSelect.appendChild(emptyOption);
+                    elements.trackSelect.disabled = true;
+                    state.currentStreamIndex = null;
+                    state.currentTrackLabel = '';
+                    return;
+                }
+
+                elements.trackSelect.disabled = false;
+                tracks.forEach(function (track) {
+                    var option = document.createElement('option');
+                    option.value = String(track.streamIndex);
+                    option.textContent = track.label;
+                    elements.trackSelect.appendChild(option);
+                });
+            }
+
+            function handleTrackSelection(nextStreamIndexValue) {
+                if (!nextStreamIndexValue) {
+                    return;
+                }
+
+                var nextStreamIndex = parseInt(nextStreamIndexValue, 10);
+                if (state.currentStreamIndex === nextStreamIndex) {
+                    return;
+                }
+
+                if (hasUnsavedChanges()) {
+                    var currentTrack = findTrack(state.currentStreamIndex);
+                    var trackLabel = currentTrack ? currentTrack.language : 'current';
+                    var shouldDiscard = window.confirm('You have unsaved changes to the ' + trackLabel + ' track. Discard changes?');
+                    if (!shouldDiscard) {
+                        elements.trackSelect.value = state.currentStreamIndex === null ? '' : String(state.currentStreamIndex);
+                        return;
+                    }
+                }
+
+                loadSubtitleTrack(nextStreamIndex, true).catch(function (error) {
+                    elements.trackSelect.value = state.currentStreamIndex === null ? '' : String(state.currentStreamIndex);
+                });
+            }
+
+            function loadSubtitleTrack(streamIndex, isSwitch) {
+                if (streamIndex === null || streamIndex === undefined || !state.currentItemId) {
+                    return Promise.resolve();
+                }
+
+                elements.trackWarning.classList.add('is-hidden');
+                elements.trackWarning.textContent = '';
+                return ApiClient.getJSON(ApiClient.getUrl('SubtitleOffset/SubtitleContent/' + state.currentItemId + '/' + streamIndex)).then(function (response) {
+                    var entries = normalizeSubtitleEntries(response);
+                    state.subtitleEntries = entries;
+                    state.currentStreamIndex = streamIndex;
+                    var selectedTrack = findTrack(streamIndex);
+                    state.currentTrackLabel = selectedTrack ? selectedTrack.label : '';
+                    var existingOffsetMs = Number(response && (response.ExistingOffsetMs !== undefined ? response.ExistingOffsetMs : response.existingOffsetMs !== undefined ? response.existingOffsetMs : response.offsetMs || 0)) || 0;
+                    state.savedOffsetMs = existingOffsetMs;
+                    state.currentOffsetMs = existingOffsetMs;
+                    state.lastCueIndex = 0;
+                    elements.trackSelect.value = String(streamIndex);
+                    syncOffsetUi();
+                    refreshCueDisplay();
+                    drawTimeline();
+                }).catch(function (error) {
+                    var selectedTrack = findTrack(streamIndex);
+                    var trackName = selectedTrack ? selectedTrack.filename : 'subtitle track';
+                    elements.trackWarning.textContent = '⚠ This subtitle file (' + trackName + ') could not be parsed. It may be malformed or corrupted.';
+                    elements.trackWarning.classList.remove('is-hidden');
+                    state.subtitleEntries = [];
+                    state.currentStreamIndex = streamIndex;
+                    elements.trackSelect.value = String(streamIndex);
+                    refreshCueDisplay();
+                    drawTimeline();
+                    throw error;
+                });
+            }
+
+            function normalizeSubtitleEntries(response) {
+                var rawEntries = [];
+                if (response) {
+                    rawEntries = response.Entries || response.entries || response.subtitleEntries || response.Items || [];
+                }
+                return rawEntries.map(function (entry) {
+                    return {
+                        startMs: Number(entry.startMs !== undefined ? entry.startMs : entry.StartMs || entry.start || 0) || 0,
+                        endMs: Number(entry.endMs !== undefined ? entry.endMs : entry.EndMs || entry.end || 0) || 0,
+                        text: entry.text !== undefined ? String(entry.text) : String(entry.Text || '')
+                    };
+                }).filter(function (entry) {
+                    return entry.endMs > entry.startMs;
+                }).sort(function (a, b) {
+                    return a.startMs - b.startMs;
+                });
+            }
+
+            function setupVideo(itemId, mediaSourceId, playSessionId) {
+                var url = ApiClient.getUrl('Videos/' + itemId + '/master.m3u8', {
+                    MediaSourceId: mediaSourceId,
+                    VideoCodec: 'h264',
+                    AudioCodec: 'aac',
+                    MaxStreamingBitrate: 5000000,
+                    PlaySessionId: playSessionId,
+                    api_key: ApiClient.accessToken()
+                });
+
+                destroyHls();
+                elements.videoPlayer.pause();
+                elements.videoPlayer.removeAttribute('src');
+                elements.videoPlayer.load();
+
+                if (window.Hls && window.Hls.isSupported()) {
+                    state.hls = new window.Hls();
+                    state.hls.loadSource(url);
+                    state.hls.attachMedia(elements.videoPlayer);
+                    state.hls.on(window.Hls.Events.ERROR, function (_event, data) {
+                        if (data && data.fatal) {
+                        }
+                    });
+                } else {
+                    elements.videoPlayer.src = url;
+                }
+            }
+
+            function destroyHls() {
+                if (state.hls) {
+                    state.hls.destroy();
+                    state.hls = null;
+                }
+            }
+
+            function refreshCueDisplay() {
+                var cue = getCurrentCue();
+                var cueText = cue ? cue.text : '';
+                if (state.lastRenderedCueText !== cueText) {
+                    elements.subtitleOverlay.textContent = cueText;
+                    state.lastRenderedCueText = cueText;
+                }
+                elements.playbackTimeLabel.textContent = 'Playback: ' + formatPlaybackTime((elements.videoPlayer.currentTime || 0) * 1000);
+                syncOffsetUi();
+            }
+
+            function getCurrentCue() {
+                if (!state.subtitleEntries.length) {
+                    return null;
+                }
+                var effectiveTime = Math.max(0, Math.round((elements.videoPlayer.currentTime || 0) * 1000) - state.currentOffsetMs);
+                var index = Math.min(Math.max(state.lastCueIndex, 0), state.subtitleEntries.length - 1);
+                while (index > 0 && state.subtitleEntries[index].startMs > effectiveTime) {
+                    index -= 1;
+                }
+                while (index < state.subtitleEntries.length - 1 && state.subtitleEntries[index].endMs <= effectiveTime) {
+                    index += 1;
+                }
+                var cue = state.subtitleEntries[index];
+                if (cue && cue.startMs <= effectiveTime && cue.endMs > effectiveTime) {
+                    state.lastCueIndex = index;
+                    return cue;
+                }
+                if (index > 0) {
+                    cue = state.subtitleEntries[index - 1];
+                    if (cue.startMs <= effectiveTime && cue.endMs > effectiveTime) {
+                        state.lastCueIndex = index - 1;
+                        return cue;
+                    }
+                }
+                return null;
+            }
+
+            function setOffset(value, debounceDelay) {
+                if (value === null || value === undefined || isNaN(value)) {
+                    value = 0;
+                }
+                state.currentOffsetMs = Math.round(Number(value));
+                state.lastCueIndex = 0;
+                syncOffsetUi();
+                if ((debounceDelay || 0) >= 1000) {
+                    debouncedTrackOffsetUpdate();
+                } else {
+                    refreshCueDisplay();
+                    drawTimeline();
+                }
+            }
+
+            function syncOffsetUi() {
+                elements.offsetInput.value = String(state.currentOffsetMs || 0);
+                elements.timelineOffsetLabel.textContent = 'Offset: ' + formatSignedMs(state.currentOffsetMs || 0);
+                var showSaved = state.currentStreamIndex !== null && state.currentOffsetMs === state.savedOffsetMs;
+                elements.savedBadge.classList.toggle('is-hidden', !showSaved);
+            }
+
+            function loadWaveform(itemId) {
+                state.waveformData = null;
+                updateWaveformUi();
+                if (!itemId) {
+                    drawTimeline();
+                    return;
+                }
+
+                ApiClient.getJSON(ApiClient.getUrl('SubtitleOffset/Waveform/' + itemId)).then(function (response) {
+                    state.waveformData = normalizeWaveformData(response);
+                    updateWaveformUi();
+                    drawTimeline();
+                }).catch(function () {
+                    state.waveformData = null;
+                    updateWaveformUi();
+                    drawTimeline();
+                });
+            }
+
+            function normalizeWaveformData(response) {
+                var raw = Array.isArray(response)
+                    ? response
+                    : (response && (response.samples || response.waveformData || response.data)) || [];
+                return raw.map(function (sample) {
+                    return Number(sample) || 0;
+                }).filter(function (sample) {
+                    return isFinite(sample);
+                });
+            }
+
+            function updateWaveformUi() {
+                var hasWaveform = !!(state.waveformData && state.waveformData.length);
+                elements.generateWaveformButton.classList.toggle('is-hidden', hasWaveform || state.waveformInProgress || !state.currentItemId);
+                elements.waveformProgress.classList.toggle('is-hidden', !state.waveformInProgress);
+                elements.waveformProgressFill.style.width = Math.max(0, Math.min(100, state.waveformProgress)) + '%';
+                elements.waveformProgressLabel.textContent = Math.round(state.waveformProgress) + '%';
+            }
+
+            function startWaveformGeneration() {
+                if (!state.currentItemId || state.waveformInProgress) {
+                    return;
+                }
+                state.waveformInProgress = true;
+                state.waveformProgress = 0;
+                updateWaveformUi();
+
+                var durationMs = getDurationMs();
+                var startTime = Date.now();
+
+                var estimatedProcessTimeMs = Math.max(2000, durationMs / 20);
+                state._waveformProgressTimer = window.setInterval(function () {
+                    var elapsed = Date.now() - startTime;
+                    var pct = Math.min(95, (elapsed / estimatedProcessTimeMs) * 100);
+                    state.waveformProgress = pct;
+                    updateWaveformUi();
+                }, 200);
+
+                var xhr = new XMLHttpRequest();
+                state._waveformXhr = xhr;
+                var generateUrl = ApiClient.getUrl('SubtitleOffset/GenerateWaveform', { api_key: ApiClient.accessToken() });
+                xhr.open('POST', generateUrl);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onprogress = function (event) {
+                    if (event.lengthComputable && event.total > 0) {
+                        var pct = Math.min(99, (event.loaded / event.total) * 100);
+                        state.waveformProgress = pct;
+                        updateWaveformUi();
+                    }
+                };
+                xhr.onload = function () {
+                    window.clearInterval(state._waveformProgressTimer);
+                    state._waveformProgressTimer = null;
+                    state._waveformXhr = null;
+                    state.waveformInProgress = false;
+                    state.waveformProgress = 100;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response && response.status === 'complete') {
+                                state.waveformData = normalizeWaveformData(response);
+                            }
+                        } catch (e) {
+                            // JSON parse error
+                        }
+                    }
+                    updateWaveformUi();
+                    drawTimeline();
+                };
+                xhr.onerror = function () {
+                    window.clearInterval(state._waveformProgressTimer);
+                    state._waveformProgressTimer = null;
+                    state._waveformXhr = null;
+                    state.waveformInProgress = false;
+                    state.waveformProgress = 0;
+                    updateWaveformUi();
+                };
+                xhr.send(JSON.stringify({ itemId: state.currentItemId }));
+            }
+
+            function cancelWaveformGeneration() {
+                // Abort the in-flight XHR so onload won't fire
+                if (state._waveformXhr) {
+                    state._waveformXhr.abort();
+                    state._waveformXhr = null;
+                }
+                if (state._waveformProgressTimer) {
+                    window.clearInterval(state._waveformProgressTimer);
+                    state._waveformProgressTimer = null;
+                }
+
+                // Clear any partial/stale waveform data
+                state.waveformData = null;
+                state.waveformInProgress = false;
+                state.waveformProgress = 0;
+                updateWaveformUi();
+                drawTimeline();
+
+                // Tell the server to stop ffmpeg processing
+                if (state.currentItemId) {
+                    ApiClient.ajax({
+                        type: 'DELETE',
+                        url: ApiClient.getUrl('SubtitleOffset/CancelWaveform', { itemId: state.currentItemId })
+                    }).catch(function () {});
+                }
+            }
+
+            function saveOffsetFile() {
+                if (state.currentItemId === null || state.currentStreamIndex === null) {
+                    return;
+                }
+                runButtonAction(elements.saveOffsetButton, 'Saving…', function () {
+                    return ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl('SubtitleOffset/Generate'),
+                        data: JSON.stringify({
+                            itemId: state.currentItemId,
+                            subtitleStreamIndex: state.currentStreamIndex,
+                            offsetMs: state.currentOffsetMs
+                        }),
+                        contentType: 'application/json'
+                    }).then(function (response) {
+                        state.savedOffsetMs = state.currentOffsetMs;
+                        syncOffsetUi();
+                        var filename = response && response.generatedFile ? extractFileName(response.generatedFile) : 'Offset file saved';
+                    });
+                }, 'Save as Offset File');
+            }
+
+            function replaceOriginalFile() {
+                if (state.currentItemId === null || state.currentStreamIndex === null) {
+                    return;
+                }
+                var track = findTrack(state.currentStreamIndex);
+                var filename = track ? track.filename : 'this subtitle file';
+                var confirmed = window.confirm('This will permanently overwrite ' + filename + '. Changes take effect on next playback start. This cannot be undone. Continue?');
+                if (!confirmed) {
+                    return;
+                }
+                runButtonAction(elements.replaceOriginalButton, 'Replacing…', function () {
+                    return ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl('SubtitleOffset/ReplaceOriginal'),
+                        data: JSON.stringify({
+                            itemId: state.currentItemId,
+                            subtitleStreamIndex: state.currentStreamIndex,
+                            offsetMs: state.currentOffsetMs
+                        }),
+                        contentType: 'application/json'
+                    }).then(function () {
+                        state.currentOffsetMs = 0;
+                        state.savedOffsetMs = 0;
+                        syncOffsetUi();
+                        return loadSubtitleTrack(state.currentStreamIndex, false).catch(function () {
+                            refreshCueDisplay();
+                            drawTimeline();
+                        }).then(function () {
+                        });
+                    });
+                }, 'Replace Original');
+            }
+
+            function runButtonAction(button, busyText, action, doneText) {
+                var originalText = doneText || button.textContent;
+                button.disabled = true;
+                button.classList.add('button-busy');
+                button.textContent = busyText;
+                Promise.resolve().then(action).then(function () {
+                    button.textContent = '✓ ' + originalText;
+                    window.setTimeout(function () {
+                        button.textContent = originalText;
+                    }, 1600);
+                }).catch(function (error) {
+                    button.textContent = originalText;
+                }).finally(function () {
+                    button.disabled = false;
+                    button.classList.remove('button-busy');
+                });
+            }
+
+            function attachTimelineHandlers() {
+                var canvas = elements.timelineCanvas;
+
+                canvas.addEventListener('wheel', function (event) {
+                    if (!getDurationMs()) {
+                        return;
+                    }
+                    event.preventDefault();
+                    var rect = canvas.getBoundingClientRect();
+                    var x = event.clientX - rect.left;
+                    var hoveredTime = xToTime(x, rect.width);
+                    var zoomFactor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+                    var nextZoom = clamp(state.timelineZoom * zoomFactor, 1, getMaxZoom());
+                    if (nextZoom === state.timelineZoom) {
+                        return;
+                    }
+                    var nextVisibleDuration = getVisibleDurationMs(nextZoom);
+                    state.timelineZoom = nextZoom;
+                    state.timelineOffset = clamp(hoveredTime - (x / rect.width) * nextVisibleDuration, 0, Math.max(0, getDurationMs() - nextVisibleDuration));
+                    drawTimeline();
+                }, { passive: false });
+
+                canvas.addEventListener('mousedown', function (event) {
+                    if (!state.subtitleEntries.length) {
+                        return;
+                    }
+                    var rect = canvas.getBoundingClientRect();
+                    console.log("Rect:", rect);
+                    var x = event.clientX - rect.left;
+                    var y = event.clientY - rect.top;
+                    var hitCue = hitTestCue(x, y, rect.width, rect.height);
+                    if (hitCue) {
+                        state.drag = {
+                            mode: 'cue',
+                            startX: x,
+                            startOffsetMs: state.currentOffsetMs
+                        };
+                    } else {
+                        state.drag = {
+                            mode: 'pan',
+                            startX: x,
+                            startOffset: state.timelineOffset,
+                            moved: false,
+                            width: rect.width
+                        };
+                    }
+                });
+
+                window.addEventListener('mousemove', function (event) {
+                    if (!state.drag) {
+                        return;
+                    }
+                    var rect = canvas.getBoundingClientRect();
+                    var x = event.clientX - rect.left;
+                    var deltaX = x - state.drag.startX;
+                    if (state.drag.mode === 'cue') {
+                        var duration = getVisibleDurationMs();
+                        if (!duration || !rect.width) {
+                            return;
+                        }
+                        var deltaMs = snapToHundreds((deltaX / rect.width) * duration);
+                        setOffset(state.drag.startOffsetMs + deltaMs, 1000);
+                    } else if (state.drag.mode === 'pan' && state.timelineZoom > 1) {
+                        var movedMs = (deltaX / state.drag.width) * getVisibleDurationMs();
+                        state.timelineOffset = clamp(state.drag.startOffset - movedMs, 0, Math.max(0, getDurationMs() - getVisibleDurationMs()));
+                        state.drag.moved = state.drag.moved || Math.abs(deltaX) > 4;
+                        drawTimeline();
+                    }
+                });
+
+                window.addEventListener('mouseup', function (event) {
+                    if (!state.drag) {
+                        return;
+                    }
+                    var drag = state.drag;
+                    state.drag = null;
+                    var rect = canvas.getBoundingClientRect();
+                    var x = event.clientX - rect.left;
+                    if (drag.mode === 'pan' && !drag.moved && x >= 0 && x <= rect.width) {
+                        seekVideoToTime(xToTime(x, rect.width));
+                    }
+                });
+
+                canvas.addEventListener('mouseleave', function () {
+                    if (state.drag && state.drag.mode === 'cue') {
+                        state.drag = null;
+                    }
+                });
+            }
+
+            function hitTestCue(cssX, cssY, cssWidth, cssHeight) {
+                // Scale CSS-pixel mouse coords to canvas buffer coords (matches drawCueBars)
+                var dpr = window.devicePixelRatio || 1;
+                var x = cssX * dpr;
+                var y = cssY * dpr;
+                var width = cssWidth * dpr;
+                var height = cssHeight * dpr;
+
+                var fullBarHeight = Math.max(26, height - 76);
+                var barHeight = Math.round(fullBarHeight * 0.75);
+                var cueBandTop = 98 + Math.round((fullBarHeight - barHeight) / 2);
+                if (y < cueBandTop || y > cueBandTop + barHeight) {
+                    return null;
+                }
+                var viewportStart = state.timelineOffset;
+                var viewportEnd = viewportStart + getVisibleDurationMs();
+                for (var i = 0; i < state.subtitleEntries.length; i += 1) {
+                    var cue = state.subtitleEntries[i];
+                    var cueStart = cue.startMs + state.currentOffsetMs;
+                    var cueEnd = cue.endMs + state.currentOffsetMs;
+                    if (cueEnd < viewportStart || cueStart > viewportEnd) {
+                        continue;
+                    }
+                    var left = timeToX(cueStart, width);
+                    var right = Math.max(left + 2, timeToX(cueEnd, width));
+                    if (x >= left && x <= right) {
+                        return cue;
+                    }
+                }
+                return null;
+            }
+
+            function seekVideoToTime(timeMs) {
+                if (!isFinite(elements.videoPlayer.duration)) {
+                    return;
+                }
+                elements.videoPlayer.currentTime = clamp(timeMs / 1000, 0, elements.videoPlayer.duration || 0);
+                refreshCueDisplay();
+                drawTimeline();
+            }
+
+            function drawTimeline() {
+                var canvas = elements.timelineCanvas;
+                var ctx = elements.timelineContext;
+                if (!ctx) {
+                    return;
+                }
+
+                resizeCanvasForDisplay();
+
+                var width = canvas.width;
+                var height = canvas.height;
+                var duration = getDurationMs();
+                var visibleDuration = getVisibleDurationMs();
+                var viewportStart = clamp(state.timelineOffset, 0, Math.max(0, duration - visibleDuration));
+                state.timelineOffset = viewportStart;
+                var viewportEnd = viewportStart + visibleDuration;
+
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = getCssVariable('--timeline-bg') || '#1a1a2e';
+                ctx.fillRect(0, 0, width, height);
+
+                if (state.waveformData && state.waveformData.length) {
+                    drawWaveform(ctx, width, height, viewportStart, visibleDuration);
+                }
+
+                drawCueBars(ctx, width, height, viewportStart, viewportEnd);
+                drawTimeRuler(ctx, width, height, viewportStart, visibleDuration);
+                drawPlaybackHead(ctx, width, height, duration);
+
+                elements.timelineWindowLabel.textContent = 'Visible window: ' + formatClock(viewportStart) + ' → ' + formatClock(viewportEnd);
+            }
+
+            function resizeCanvasForDisplay() {
+                var canvas = elements.timelineCanvas;
+                var dpr = window.devicePixelRatio || 1;
+                var rect = canvas.getBoundingClientRect();
+                var targetWidth = Math.max(1, Math.round(rect.width * dpr));
+                var targetHeight = Math.max(1, Math.round(rect.height * dpr));
+                if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                }
+            }
+
+            function drawWaveform(ctx, width, height, viewportStart, visibleDuration) {
+                var data = state.waveformData;
+                if (!data || !data.length) {
+                    return;
+                }
+                var top = 38;
+                var bottom = height - 10;
+                var mid = top + (bottom - top) / 2;
+                ctx.beginPath();
+                ctx.moveTo(0, mid);
+                for (var x = 0; x < width; x += 1) {
+                    var t = viewportStart + (x / width) * visibleDuration;
+                    var sampleIndex = clamp(Math.floor((t / Math.max(1, getDurationMs())) * data.length), 0, data.length - 1);
+                    var amplitude = Math.max(-1, Math.min(1, data[sampleIndex]));
+                    var y = mid - amplitude * ((bottom - top) / 2);
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(width, mid);
+                ctx.closePath();
+                ctx.fillStyle = getCssVariable('--waveform-fill') || 'rgba(76, 175, 80, 0.4)';
+                ctx.fill();
+            }
+
+            function drawCueBars(ctx, width, height, viewportStart, viewportEnd) {
+                ctx.fillStyle = getCssVariable('--cue-bar') || 'rgba(66, 135, 245, 0.6)';
+                var fullBarHeight = Math.max(26, height - 76);
+                var barHeight = Math.round(fullBarHeight * 0.75);
+                var top = 98 + Math.round((fullBarHeight - barHeight) / 2);
+                for (var i = 0; i < state.subtitleEntries.length; i += 1) {
+                    var cue = state.subtitleEntries[i];
+                    var cueStart = cue.startMs + state.currentOffsetMs;
+                    var cueEnd = cue.endMs + state.currentOffsetMs;
+                    if (cueEnd < viewportStart || cueStart > viewportEnd) {
+                        continue;
+                    }
+                    var x = timeToX(cueStart, width);
+                    var endX = timeToX(cueEnd, width);
+                    ctx.fillRect(x, top, Math.max(2, endX - x), barHeight);
+                }
+            }
+
+            function drawTimeRuler(ctx, width, height, viewportStart, visibleDuration) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.font = Math.max(12, Math.round(height * 0.075)) + 'px sans-serif';
+                ctx.textBaseline = 'top';
+                var interval = getRulerStep(visibleDuration);
+                var start = Math.floor(viewportStart / interval) * interval;
+                for (var t = start; t <= viewportStart + visibleDuration; t += interval) {
+                    var x = timeToX(t, width);
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                    ctx.fillText(formatClock(t), x + 4, 4);
+                }
+            }
+
+            function drawPlaybackHead(ctx, width, height, duration) {
+                if (!duration) {
+                    return;
+                }
+                var playbackTime = (elements.videoPlayer.currentTime || 0) * 1000;
+                var x = timeToX(playbackTime, width);
+                ctx.strokeStyle = getCssVariable('--playback-head') || '#ff4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            }
+
+            function getRulerStep(visibleDuration) {
+                var steps = [500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000, 600000];
+                for (var i = 0; i < steps.length; i += 1) {
+                    if (visibleDuration / steps[i] <= 10) {
+                        return steps[i];
+                    }
+                }
+                return 900000;
+            }
+
+            function getDurationMs() {
+                if (isFinite(elements.videoPlayer.duration) && elements.videoPlayer.duration > 0) {
+                    return Math.round(elements.videoPlayer.duration * 1000);
+                }
+                if (state.subtitleEntries.length) {
+                    return state.subtitleEntries[state.subtitleEntries.length - 1].endMs;
+                }
+                return 0;
+            }
+
+            function getVisibleDurationMs(zoomOverride) {
+                var duration = getDurationMs();
+                if (!duration) {
+                    return 10000;
+                }
+                var zoom = zoomOverride || state.timelineZoom || 1;
+                return Math.max(10000, duration / zoom);
+            }
+
+            function getMaxZoom() {
+                var duration = getDurationMs();
+                if (!duration) {
+                    return 1;
+                }
+                return Math.max(1, duration / 10000);
+            }
+
+            function timeToX(timeMs, width) {
+                width = width || elements.timelineCanvas.width;
+                return ((timeMs - state.timelineOffset) / Math.max(1, getVisibleDurationMs())) * width;
+            }
+
+            function xToTime(x, width) {
+                width = width || elements.timelineCanvas.getBoundingClientRect().width || elements.timelineCanvas.width;
+                return state.timelineOffset + (x / Math.max(1, width)) * getVisibleDurationMs();
+            }
+
+            function startRenderLoop() {
+                if (state.animationFrameId) {
+                    return;
+                }
+                var loop = function () {
+                    if (state.editorVisible) {
+                        refreshCueDisplay();
+                        drawTimeline();
+                    }
+                    state.animationFrameId = window.requestAnimationFrame(loop);
+                };
+                state.animationFrameId = window.requestAnimationFrame(loop);
+            }
+
+            function resetEditorState() {
+                state.currentItemId = null;
+                state.currentMediaSourceId = null;
+                state.currentStreamIndex = null;
+                state.currentTrackLabel = '';
+                state.currentOffsetMs = 0;
+                state.savedOffsetMs = 0;
+                state.subtitleEntries = [];
+                state.waveformData = null;
+                state.timelineZoom = 1;
+                state.timelineOffset = 0;
+                state.playSessionId = null;
+                state.lastRenderedCueText = null;
+                state.lastCueIndex = 0;
+                state.currentTracks = [];
+                elements.subtitleOverlay.textContent = '';
+                elements.trackWarning.classList.add('is-hidden');
+                elements.trackWarning.textContent = '';
+                populateTrackOptions([]);
+                updateWaveformUi();
+                syncOffsetUi();
+            }
+
+            function returnToSearch() {
+                cleanupPlaybackSession();
+                resetEditorState();
+                setView('search');
+                var query = elements.searchInput.value.trim();
+                setSearchStatus(query ? 'Search results are ready.' : 'Start typing to search movies and episodes.');
+                updateLibraryBrowserVisibility(query);
+                if (!query) {
+                    loadLibraryLevel();
+                }
+                elements.searchInput.focus();
+            }
+
+            function cleanupPlaybackSession() {
+                state.waveformInProgress = false;
+                updateWaveformUi();
+                destroyHls();
+                try {
+                    elements.videoPlayer.pause();
+                } catch (_error) {
+                }
+                if (elements.videoPlayer) {
+                    elements.videoPlayer.removeAttribute('src');
+                    elements.videoPlayer.load();
+                }
+                if (state.playSessionId) {
+                    ApiClient.ajax({
+                        type: 'DELETE',
+                        url: ApiClient.getUrl('Videos/ActiveEncodings', {
+                            deviceId: ApiClient.deviceId(),
+                            playSessionId: state.playSessionId
+                        })
+                    }).catch(function () {
+                    });
+                    state.playSessionId = null;
+                }
+            }
+
+            function hasUnsavedChanges() {
+                return state.currentStreamIndex !== null && state.currentOffsetMs !== state.savedOffsetMs;
+            }
+
+            function findTrack(streamIndex) {
+                for (var i = 0; i < state.currentTracks.length; i += 1) {
+                    if (state.currentTracks[i].streamIndex === streamIndex) {
+                        return state.currentTracks[i];
+                    }
+                }
+                return null;
+            }
+
+            function createPlaySessionId() {
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    return window.crypto.randomUUID();
+                }
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (char) {
+                    var random = Math.random() * 16 | 0;
+                    var value = char === 'x' ? random : (random & 0x3 | 0x8);
+                    return value.toString(16);
+                });
+            }
+
+            function setView(view) {
+                state.editorVisible = view === 'editor';
+                elements.searchView.classList.toggle('is-active', view === 'search');
+                elements.editorView.classList.toggle('is-active', view === 'editor');
+                if (state.editorVisible) {
+                    startRenderLoop();
+                }
+            }
+
+            function buildEditorMeta(item) {
+                var parts = [];
+                if (item.Type) {
+                    parts.push(item.Type);
+                }
+                if (item.ProductionYear) {
+                    parts.push(String(item.ProductionYear));
+                }
+                if (item.Path) {
+                    parts.push(extractFileName(item.Path));
+                }
+                return parts.join(' • ');
+            }
+
+            function setSearchStatus(message, extraClass) {
+                elements.searchStatus.className = 'search-status' + (extraClass ? ' ' + extraClass : '');
+                elements.searchStatus.textContent = message || '';
+            }
+
+            /* ─── Library Browser ──────────────────────────────────────── */
+
+            var LIBRARY_PAGE_SIZE = 50;
+            var VIDEO_COLLECTION_TYPES = ['movies', 'tvshows', 'mixed'];
+            var LEAF_ITEM_TYPES = ['Movie', 'Episode'];
+
+            function updateLibraryBrowserVisibility(query) {
+                var show = !query;
+                elements.libraryBrowser.classList.toggle('is-hidden', !show);
+                if (show && state.libraryNav.items.length === 0 && !state.libraryNav.loading) {
+                    loadLibraryLevel();
+                }
+            }
+
+            function loadLibraryLevel() {
+                var nav = state.libraryNav;
+                nav.loading = true;
+                nav.error = null;
+                renderLibraryState();
+
+                var params = {
+                    Recursive: false,
+                    StartIndex: nav.currentPage * LIBRARY_PAGE_SIZE,
+                    Limit: LIBRARY_PAGE_SIZE,
+                    SortBy: 'SortName',
+                    SortOrder: 'Ascending',
+                    Fields: 'PrimaryImageAspectRatio'
+                };
+
+                if (nav.currentParentId) {
+                    params.ParentId = nav.currentParentId;
+                }
+
+                ApiClient.getItems(ApiClient.getCurrentUserId(), params).then(function (result) {
+                    var items = (result && result.Items) || [];
+                    var totalCount = (result && result.TotalRecordCount) || 0;
+
+                    if (!nav.currentParentId) {
+                        items = items.filter(function (item) {
+                            var ct = (item.CollectionType || '').toLowerCase();
+                            return !ct || VIDEO_COLLECTION_TYPES.indexOf(ct) !== -1;
+                        });
+                        totalCount = items.length;
+                    }
+
+                    nav.items = items;
+                    nav.totalCount = totalCount;
+                    nav.loading = false;
+                    nav.error = null;
+                    renderLibraryState();
+                }).catch(function (error) {
+                    nav.loading = false;
+                    nav.error = getErrorMessage(error);
+                    nav.items = [];
+                    nav.totalCount = 0;
+                    renderLibraryState();
+                });
+            }
+
+            function libraryNavigateTo(itemId, itemName) {
+                var nav = state.libraryNav;
+                if (nav.loading) return;
+                nav.path.push({ id: itemId, name: itemName });
+                nav.currentParentId = itemId;
+                nav.currentPage = 0;
+                nav.items = [];
+                nav.totalCount = 0;
+                loadLibraryLevel();
+            }
+
+            function libraryNavigateUp() {
+                var nav = state.libraryNav;
+                if (nav.loading || nav.path.length === 0) return;
+                nav.path.pop();
+                nav.currentParentId = nav.path.length > 0 ? nav.path[nav.path.length - 1].id : null;
+                nav.currentPage = 0;
+                nav.items = [];
+                nav.totalCount = 0;
+                loadLibraryLevel();
+            }
+
+            function libraryNavigateToLevel(levelIndex) {
+                var nav = state.libraryNav;
+                if (nav.loading) return;
+                if (levelIndex < 0) {
+                    nav.path = [];
+                    nav.currentParentId = null;
+                } else {
+                    nav.path = nav.path.slice(0, levelIndex + 1);
+                    nav.currentParentId = nav.path[nav.path.length - 1].id;
+                }
+                nav.currentPage = 0;
+                nav.items = [];
+                nav.totalCount = 0;
+                loadLibraryLevel();
+            }
+
+            function libraryChangePage(newPage) {
+                var nav = state.libraryNav;
+                if (nav.loading) return;
+                var totalPages = Math.ceil(nav.totalCount / LIBRARY_PAGE_SIZE);
+                if (newPage < 0 || newPage >= totalPages) return;
+                nav.currentPage = newPage;
+                nav.items = [];
+                loadLibraryLevel();
+            }
+
+            function isLeafItem(item) {
+                return LEAF_ITEM_TYPES.indexOf(item.Type) !== -1;
+            }
+
+            function renderLibraryState() {
+                var nav = state.libraryNav;
+
+                // Breadcrumb
+                renderLibraryBreadcrumb();
+
+                // Back button
+                elements.libraryBackBtn.classList.toggle('is-hidden', nav.path.length === 0);
+
+                // Items area
+                elements.libraryItems.innerHTML = '';
+
+                if (nav.loading) {
+                    var spinner = document.createElement('div');
+                    spinner.className = 'library-spinner';
+                    spinner.textContent = 'Loading…';
+                    elements.libraryItems.appendChild(spinner);
+                    elements.libraryPagination.classList.add('is-hidden');
+                    return;
+                }
+
+                if (nav.error) {
+                    var errorDiv = document.createElement('div');
+                    errorDiv.className = 'library-error';
+                    errorDiv.innerHTML = escapeHtml(nav.error) + '<br><button type="button">Retry</button>';
+                    errorDiv.querySelector('button').addEventListener('click', function () {
+                        loadLibraryLevel();
+                    });
+                    elements.libraryItems.appendChild(errorDiv);
+                    elements.libraryPagination.classList.add('is-hidden');
+                    return;
+                }
+
+                if (nav.items.length === 0) {
+                    var emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'library-empty';
+                    emptyDiv.textContent = 'Empty folder';
+                    elements.libraryItems.appendChild(emptyDiv);
+                    elements.libraryPagination.classList.add('is-hidden');
+                    return;
+                }
+
+                nav.items.forEach(function (item) {
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'result-card';
+                    button.innerHTML = buildLibraryItemMarkup(item);
+                    button.addEventListener('click', function () {
+                        if (isLeafItem(item)) {
+                            openEditor(item.Id);
+                        } else {
+                            libraryNavigateTo(item.Id, item.Name || 'Untitled');
+                        }
+                    });
+                    elements.libraryItems.appendChild(button);
+                });
+
+                // Pagination
+                var totalPages = Math.ceil(nav.totalCount / LIBRARY_PAGE_SIZE);
+                if (totalPages > 1) {
+                    elements.libraryPagination.classList.remove('is-hidden');
+                    elements.libraryPrevBtn.disabled = nav.currentPage === 0;
+                    elements.libraryNextBtn.disabled = nav.currentPage >= totalPages - 1;
+                    elements.libraryPageLabel.textContent = 'Page ' + (nav.currentPage + 1) + ' of ' + totalPages;
+                } else {
+                    elements.libraryPagination.classList.add('is-hidden');
+                }
+            }
+
+            function renderLibraryBreadcrumb() {
+                var nav = state.libraryNav;
+                elements.libraryBreadcrumb.innerHTML = '';
+
+                if (nav.path.length === 0) return;
+
+                // "Libraries" root link
+                var rootBtn = document.createElement('button');
+                rootBtn.type = 'button';
+                rootBtn.textContent = 'Libraries';
+                rootBtn.addEventListener('click', function () {
+                    libraryNavigateToLevel(-1);
+                });
+                elements.libraryBreadcrumb.appendChild(rootBtn);
+
+                nav.path.forEach(function (segment, index) {
+                    var sep = document.createElement('span');
+                    sep.className = 'breadcrumb-separator';
+                    sep.textContent = '›';
+                    elements.libraryBreadcrumb.appendChild(sep);
+
+                    if (index === nav.path.length - 1) {
+                        var current = document.createElement('span');
+                        current.className = 'breadcrumb-current';
+                        current.textContent = segment.name;
+                        elements.libraryBreadcrumb.appendChild(current);
+                    } else {
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.textContent = segment.name;
+                        (function (lvl) {
+                            btn.addEventListener('click', function () {
+                                libraryNavigateToLevel(lvl);
+                            });
+                        })(index);
+                        elements.libraryBreadcrumb.appendChild(btn);
+                    }
+                });
+            }
+
+            function buildLibraryItemMarkup(item) {
+                var imageTag = item.ImageTags && item.ImageTags.Primary;
+                var imageUrl = imageTag ? ApiClient.getUrl('Items/' + item.Id + '/Images/Primary', {
+                    tag: imageTag,
+                    maxWidth: 192,
+                    maxHeight: 108,
+                    quality: 90
+                }) : '';
+                var title = escapeHtml(item.Name || 'Untitled');
+                var metaBits = [];
+                if (item.ProductionYear) {
+                    metaBits.push(item.ProductionYear);
+                }
+                metaBits.push(item.Type || 'Item');
+                if (item.SeriesName) {
+                    metaBits.push(item.SeriesName);
+                }
+                var thumb = imageUrl
+                    ? '<img class="result-thumb" src="' + imageUrl + '" alt="">'
+                    : '<div class="result-thumb placeholder">No image</div>';
+                var folderHint = isLeafItem(item) ? '' : '<span class="folder-indicator">›</span>';
+                return thumb +
+                    '<div>' +
+                    '<div class="result-title">' + title + folderHint + '</div>' +
+                    '<div class="result-meta">' + escapeHtml(metaBits.join(' • ')) + '</div>' +
+                    '</div>';
+            }
+
+            /* ─── End Library Browser ──────────────────────────────────── */
+
+
+            function formatClock(ms) {
+                ms = Math.max(0, Math.round(ms || 0));
+                var totalSeconds = Math.floor(ms / 1000);
+                var seconds = totalSeconds % 60;
+                var minutes = Math.floor(totalSeconds / 60) % 60;
+                var hours = Math.floor(totalSeconds / 3600);
+                if (hours > 0) {
+                    return hours + ':' + pad2(minutes) + ':' + pad2(seconds);
+                }
+                return minutes + ':' + pad2(seconds);
+            }
+
+            function formatPlaybackTime(ms) {
+                ms = Math.max(0, Math.round(ms || 0));
+                var millis = ms % 1000;
+                var totalSeconds = Math.floor(ms / 1000);
+                var seconds = totalSeconds % 60;
+                var minutes = Math.floor(totalSeconds / 60) % 60;
+                var hours = Math.floor(totalSeconds / 3600);
+                return pad2(hours) + ':' + pad2(minutes) + ':' + pad2(seconds) + ':' + pad2(Math.floor(millis / 10));
+            }
+
+            function formatSignedMs(ms) {
+                var rounded = Math.round(ms || 0);
+                if (rounded > 0) {
+                    return '+' + rounded + ' ms';
+                }
+                return rounded + ' ms';
+            }
+
+            function pad2(value) {
+                return value < 10 ? '0' + value : String(value);
+            }
+
+            function snapToHundreds(value) {
+                return Math.round(value / 100) * 100;
+            }
+
+            function clamp(value, min, max) {
+                return Math.min(Math.max(value, min), max);
+            }
+
+            function extractFileName(path) {
+                var normalized = String(path || '').replace(/\\/g, '/');
+                var lastSlash = normalized.lastIndexOf('/');
+                return lastSlash >= 0 ? normalized.substring(lastSlash + 1) : normalized;
+            }
+
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, function (char) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    }[char];
+                });
+            }
+
+            function getErrorMessage(error) {
+                if (!error) {
+                    return 'An unexpected error occurred.';
+                }
+                if (typeof error === 'string') {
+                    return error;
+                }
+                if (error.responseJSON && error.responseJSON.error) {
+                    return error.responseJSON.error;
+                }
+                if (error.error) {
+                    return error.error;
+                }
+                if (error.message) {
+                    return error.message;
+                }
+                return 'Request failed.';
+            }
+
+            function getCssVariable(name) {
+                return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            }
+
+            page.addEventListener('pageshow', function () {
+                init();
+                setView(state.currentItemId ? 'editor' : 'search');
+                startRenderLoop();
+                if (!state.currentItemId) {
+                    elements.searchInput.focus();
+                }
+                drawTimeline();
+            });
+        })();
+    </script>
+    </div>
+</body>
+</html>

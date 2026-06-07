@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Subtitle Sync – Dev Preview</title>
+    <style>
+        /* Simulate Jellyfin dark theme */
+        body {
+            background: #101010;
+            color: #eee;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 2rem;
+        }
+        .mainAnimatedPages { max-width: 1600px; margin: 0 auto; }
+    </style>
+    <script>
+        // Mock ApiClient so the page JS doesn't crash
+        window.ApiClient = {
+            getCurrentUserId: function() { return 'mock-user-id'; },
+            accessToken: function() { return 'mock-token'; },
+            deviceId: function() { return 'mock-device'; },
+            getUrl: function(path, params) {
+                var url = '/' + path;
+                if (params) {
+                    var qs = Object.keys(params).map(function(k) { return k + '=' + encodeURIComponent(params[k]); }).join('&');
+                    url += '?' + qs;
+                }
+                return url;
+            },
+            getJSON: function(url) {
+                console.log('[MockAPI] getJSON:', url);
+                // Mock subtitle content response
+                if (url.indexOf('SubtitleContent') !== -1) {
+                    return Promise.resolve({
+                        Language: 'en',
+                        IsOffsetFile: false,
+                        ExistingOffsetMs: 0,
+                        Entries: [
+                            { Index: 1, StartMs: 1000, EndMs: 4000, Text: 'Hello, welcome to this sample video.' },
+                            { Index: 2, StartMs: 5000, EndMs: 8500, Text: 'This is the second subtitle line\nwith multiple lines.' },
+                            { Index: 3, StartMs: 10000, EndMs: 13000, Text: 'And here is the third subtitle entry.' },
+                            { Index: 4, StartMs: 15500, EndMs: 18000, Text: 'The subtitles continue here.' },
+                            { Index: 5, StartMs: 20000, EndMs: 24000, Text: 'This is the final subtitle line.\nThank you for watching!' },
+                            { Index: 6, StartMs: 26000, EndMs: 29000, Text: 'Bonus: an extra cue for testing.' },
+                            { Index: 7, StartMs: 31000, EndMs: 34500, Text: 'Another line to make the timeline richer.' },
+                            { Index: 8, StartMs: 36000, EndMs: 39000, Text: 'Almost done with the subtitles now.' },
+                            { Index: 9, StartMs: 41000, EndMs: 44000, Text: 'One more cue before the end.' },
+                            { Index: 10, StartMs: 46000, EndMs: 50000, Text: 'The very last subtitle entry.' }
+                        ]
+                    });
+                }
+                // Mock waveform (no cached waveform)
+                if (url.indexOf('Waveform') !== -1) {
+                    return Promise.resolve({ HasCachedWaveform: false });
+                }
+                // Mock item details
+                if (url.indexOf('/Items/') !== -1) {
+                    return Promise.resolve({
+                        Id: 'mock-item-id',
+                        Name: 'Mock Movie',
+                        Type: 'Movie',
+                        ProductionYear: 2024,
+                        Path: '/media/Mock Movie (2024).mp4',
+                        RunTimeTicks: 600000000,
+                        MediaSources: [{
+                            Id: 'mock-source-id',
+                            Path: '/media/Mock Movie (2024).mp4',
+                            MediaStreams: [
+                                { Type: 'Subtitle', Index: 0, IsExternal: true, Language: 'eng', Path: '/media/Mock Movie (2024).en.srt', Codec: 'subrip' },
+                                { Type: 'Subtitle', Index: 1, IsExternal: true, Language: 'spa', Path: '/media/Mock Movie (2024).es.srt', Codec: 'subrip' },
+                                { Type: 'Video', Index: 2, IsExternal: false, Codec: 'h264' },
+                                { Type: 'Audio', Index: 3, IsExternal: false, Codec: 'aac' }
+                            ]
+                        }]
+                    });
+                }
+                return Promise.resolve({});
+            },
+            getItems: function(userId, params) {
+                console.log('[MockAPI] getItems:', params);
+                return Promise.resolve({
+                    Items: [{
+                        Id: 'mock-item-id',
+                        Name: 'Mock Movie',
+                        Type: 'Movie',
+                        ProductionYear: 2024,
+                        Path: '/media/Mock Movie (2024).mp4',
+                        RunTimeTicks: 600000000,
+                        HasSubtitles: true,
+                        MediaSources: [{
+                            Id: 'mock-source-id',
+                            MediaStreams: [
+                                { Type: 'Subtitle', Index: 0, IsExternal: true, Language: 'eng', Path: '/media/Mock Movie (2024).en.srt', Codec: 'subrip' },
+                                { Type: 'Subtitle', Index: 1, IsExternal: true, Language: 'spa', Path: '/media/Mock Movie (2024).es.srt', Codec: 'subrip' },
+                                { Type: 'Video', Index: 2, IsExternal: false, Codec: 'h264' },
+                                { Type: 'Audio', Index: 3, IsExternal: false, Codec: 'aac' }
+                            ]
+                        }],
+                        ImageTags: {}
+                    }],
+                    TotalRecordCount: 1
+                });
+            },
+            ajax: function(options) {
+                console.log('[MockAPI] ajax:', options.type, options.url);
+                if (options.url && options.url.indexOf('Generate') !== -1) {
+                    return Promise.resolve({ success: true });
+                }
+                if (options.url && options.url.indexOf('ReplaceOriginal') !== -1) {
+                    return Promise.resolve({ success: true });
+                }
+                return Promise.resolve({});
+            }
+        };
+
+        // Mock Dashboard
+        window.Dashboard = {
+            showLoadingMsg: function() {},
+            hideLoadingMsg: function() {}
+        };
+    </script>
+</head>
+<body>
+    <div class="mainAnimatedPages skinBody">
+        <!-- The plugin page will be injected here by the loader script below -->
+    </div>
+
+    <script>
+        // Load the configPage.html content, extract the page div, and inject it
+        fetch('src/Jellyfin.Plugin.SubtitleOffset/Configuration/configPage.html')
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                var wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+                var page = wrapper.querySelector('div[data-role="page"]');
+                if (!page) {
+                    document.body.innerHTML = '<h1 style="color:red">ERROR: Could not find div[data-role="page"] in configPage.html</h1>';
+                    return;
+                }
+                document.querySelector('.mainAnimatedPages').appendChild(page);
+
+                // Execute scripts inside the page (simulating jQuery appendTo behavior)
+                var scripts = page.querySelectorAll('script');
+                scripts.forEach(function(oldScript) {
+                    var newScript = document.createElement('script');
+                    if (oldScript.src) {
+                        newScript.src = oldScript.src;
+                    } else {
+                        newScript.textContent = oldScript.textContent;
+                    }
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+
+                // Dispatch pageshow event after a tick (let external scripts load)
+                setTimeout(function() {
+                    page.dispatchEvent(new CustomEvent('pageshow', { bubbles: true }));
+
+                    // Auto-load mock data: simulate searching and clicking a result
+                    setTimeout(function() {
+                        var input = document.querySelector('#searchInput');
+                        if (input) {
+                            input.value = 'mock';
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                        // Click the result after search completes
+                        setTimeout(function() {
+                            var btn = document.querySelector('.search-results button');
+                            if (btn) btn.click();
+                            // Select first subtitle track after load
+                            setTimeout(function() {
+                                var select = document.querySelector('#trackSelect');
+                                if (select && select.options.length > 0) {
+                                    select.value = select.options[0].value;
+                                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }, 500);
+                        }, 500);
+                    }, 300);
+                }, 500);
+            })
+            .catch(function(err) {
+                document.body.innerHTML = '<h1 style="color:red">Failed to load configPage.html: ' + err.message + '</h1><p>Make sure you run a local server from the project root (e.g. <code>python3 -m http.server 8080</code>)</p>';
+            });
+    </script>
+</body>
+</html>
