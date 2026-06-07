@@ -39,6 +39,7 @@ jobs:
 
       - name: Update meta.json version
         run: |
+          cp meta.json build/plugin/meta.json
           jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' build/plugin/meta.json > tmp.json && mv tmp.json build/plugin/meta.json
 
       - name: Create release ZIP
@@ -77,7 +78,7 @@ jobs:
               "description": "A Jellyfin plugin that lets admins visually adjust subtitle timing and save corrected .srt files for all users.",
               "owner": "90andrecarvalho",
               "category": "Subtitles",
-              "imageUrl": "https://raw.githubusercontent.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/main/build/plugin/thumb.png",
+              "imageUrl": "https://raw.githubusercontent.com/90andrecarvalho/jellyfin-plugin-subtitle-sync/main/src/Jellyfin.Plugin.SubtitleOffset/Configuration/logo.svg",
               "versions": [
                 {
                   "version": "${VERSION}",
