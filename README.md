@@ -1,3 +1,5 @@
+![Jellyfin Subtitle Sync](screenshot.png)
+
 # Jellyfin Subtitle Sync Plugin
 
 A self-contained Jellyfin plugin that provides an admin-only subtitle synchronization tool. Browse your library, preview video with HLS streaming, and visually adjust subtitle timing using an interactive timeline with draggable cue bars and optional audio waveform visualization.
