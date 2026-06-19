@@ -11,6 +11,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.SubtitleOffset.Services;
 
+/// <summary>
+/// Service for generating and caching audio waveform data using FFmpeg.
+/// </summary>
 public class WaveformService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -25,6 +28,12 @@ public class WaveformService
     private readonly object _processLock = new();
     private Process? _currentProcess;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WaveformService"/> class.
+    /// </summary>
+    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
+    /// <param name="logger">Instance of the <see cref="ILogger{WaveformService}"/> interface.</param>
+    /// <param name="applicationPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
     public WaveformService(
         IMediaEncoder mediaEncoder,
         ILogger<WaveformService> logger,
@@ -35,6 +44,13 @@ public class WaveformService
         _applicationPaths = applicationPaths;
     }
 
+    /// <summary>
+    /// Generates waveform data for the specified media file.
+    /// </summary>
+    /// <param name="mediaFilePath">Path to the media file.</param>
+    /// <param name="totalDurationSeconds">Total duration of the media in seconds.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The generated waveform data.</returns>
     public Task<WaveformData> GenerateAsync(
         string mediaFilePath,
         double totalDurationSeconds,
@@ -43,6 +59,14 @@ public class WaveformService
         return GenerateAsync(mediaFilePath, totalDurationSeconds, null, cancellationToken);
     }
 
+    /// <summary>
+    /// Generates waveform data for the specified media file with progress reporting.
+    /// </summary>
+    /// <param name="mediaFilePath">Path to the media file.</param>
+    /// <param name="totalDurationSeconds">Total duration of the media in seconds.</param>
+    /// <param name="progress">Optional progress reporter.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The generated waveform data.</returns>
     public async Task<WaveformData> GenerateAsync(
         string mediaFilePath,
         double totalDurationSeconds,
@@ -147,6 +171,11 @@ public class WaveformService
         }
     }
 
+    /// <summary>
+    /// Gets cached waveform data for the specified item.
+    /// </summary>
+    /// <param name="itemId">The item ID.</param>
+    /// <returns>The cached waveform data, or null if not found.</returns>
     public WaveformData? GetCachedWaveform(Guid itemId)
     {
         var cachePath = GetCachePath(itemId);
@@ -167,11 +196,21 @@ public class WaveformService
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether a cached waveform exists for the specified item.
+    /// </summary>
+    /// <param name="itemId">The item ID.</param>
+    /// <returns>True if cached waveform exists.</returns>
     public bool HasCachedWaveform(Guid itemId)
     {
         return File.Exists(GetCachePath(itemId));
     }
 
+    /// <summary>
+    /// Saves waveform data to the cache.
+    /// </summary>
+    /// <param name="itemId">The item ID.</param>
+    /// <param name="waveformData">The waveform data to cache.</param>
     public void SaveCachedWaveform(Guid itemId, WaveformData waveformData)
     {
         ArgumentNullException.ThrowIfNull(waveformData);
@@ -184,6 +223,9 @@ public class WaveformService
         JsonSerializer.Serialize(stream, waveformData, JsonOptions);
     }
 
+    /// <summary>
+    /// Cancels any in-progress waveform generation.
+    /// </summary>
     public void CancelGeneration()
     {
         Process? process;
@@ -349,9 +391,18 @@ public class WaveformService
     }
 }
 
+/// <summary>
+/// Represents audio waveform data.
+/// </summary>
 public class WaveformData
 {
+    /// <summary>
+    /// Gets or sets the sample rate in samples per second.
+    /// </summary>
     public int SampleRate { get; set; } = 1;
 
+    /// <summary>
+    /// Gets or sets the normalized waveform samples.
+    /// </summary>
     public float[] Samples { get; set; } = Array.Empty<float>();
 }

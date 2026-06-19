@@ -34,6 +34,18 @@ public class SubtitleOffsetController : ControllerBase
     private readonly IMediaSourceManager _mediaSourceManager;
     private readonly ILogger<SubtitleOffsetController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SubtitleOffsetController"/> class.
+    /// </summary>
+    /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
+    /// <param name="mediaSourceManager">Instance of the <see cref="IMediaSourceManager"/> interface.</param>
+    /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="fileSystem">Instance of the <see cref="MediaBrowser.Model.IO.IFileSystem"/> interface.</param>
+    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
+    /// <param name="applicationPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
+    /// <param name="logger">Instance of the <see cref="ILogger{SubtitleOffsetController}"/> interface.</param>
+    /// <param name="serviceLogger">Instance of the <see cref="ILogger{OffsetFileService}"/> interface.</param>
+    /// <param name="waveformLogger">Instance of the <see cref="ILogger{WaveformService}"/> interface.</param>
     public SubtitleOffsetController(
         ILibraryManager libraryManager,
         IMediaSourceManager mediaSourceManager,
@@ -284,8 +296,19 @@ public class SubtitleOffsetController : ControllerBase
 /// </summary>
 public class GenerateRequest
 {
+    /// <summary>
+    /// Gets or sets the item ID.
+    /// </summary>
     public Guid ItemId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the subtitle stream index.
+    /// </summary>
     public int SubtitleStreamIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the offset in milliseconds.
+    /// </summary>
     public long OffsetMs { get; set; }
 }
 
@@ -294,5 +317,8 @@ public class GenerateRequest
 /// </summary>
 public class WaveformRequest
 {
+    /// <summary>
+    /// Gets or sets the item ID.
+    /// </summary>
     public Guid ItemId { get; set; }
 }

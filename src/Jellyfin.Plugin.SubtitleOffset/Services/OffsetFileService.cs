@@ -33,6 +33,14 @@ public class OffsetFileService
     private readonly IFileSystem _fileSystem;
     private readonly ILogger<OffsetFileService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OffsetFileService"/> class.
+    /// </summary>
+    /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
+    /// <param name="mediaSourceManager">Instance of the <see cref="IMediaSourceManager"/> interface.</param>
+    /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="fileSystem">Instance of the <see cref="IFileSystem"/> interface.</param>
+    /// <param name="logger">Instance of the <see cref="ILogger{OffsetFileService}"/> interface.</param>
     public OffsetFileService(
         ILibraryManager libraryManager,
         IMediaSourceManager mediaSourceManager,
@@ -396,8 +404,19 @@ public class OffsetFileService
 /// </summary>
 public class GenerateResult
 {
+    /// <summary>
+    /// Gets or sets the generated filename.
+    /// </summary>
     public string? GeneratedFile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the track name.
+    /// </summary>
     public string? TrackName { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the offset file was deleted.
+    /// </summary>
     public bool Deleted { get; set; }
 }
 
@@ -474,5 +493,9 @@ public class SubtitleEntryDto
 /// </summary>
 public class ItemNotFoundException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ItemNotFoundException"/> class.
+    /// </summary>
+    /// <param name="message">The error message.</param>
     public ItemNotFoundException(string message) : base(message) { }
 }

@@ -1,12 +1,12 @@
 1
 00:00:01,000 --> 00:00:04,000
-This file is intentionally malformed.
+This is subtitle 1.
 
 2
 00:00:05 --> 00:00:08
-Missing milliseconds in timestamp.
+This is subtitle 2 with missing ms, but should still parse.
 
 3
 Bad sequence number here
 00:00:10,000 --> 00:00:13,000
-This won't parse correctly.
+This is subtitle 3 with invalid sequence number, but should still parse.
